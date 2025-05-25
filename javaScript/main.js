@@ -313,29 +313,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Hàm hiển thị thông báo toast
     window.showToast = function(message, type = 'info') {
-    let toastContainer = document.getElementById('toastPlacement');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toastPlacement';
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        toastContainer.style.zIndex = "1060"; // Cao hơn modal (1050-1055 Bootstrap)
-        // Ưu tiên thêm vào parent document nếu đang ở trong iframe (quan trọng)
+    let toastContainer = null;
+    let targetDocument = document;
+    let targetBootstrap = window.bootstrap;
+
+    try {
         if (window.self !== window.top && window.parent.document.body) {
-            if(!window.parent.document.getElementById('toastPlacement')){
-                 window.parent.document.body.appendChild(toastContainer);
-            } else {
-                toastContainer = window.parent.document.getElementById('toastPlacement');
-            }
-        } else {
-            document.body.appendChild(toastContainer);
+            targetDocument = window.parent.document;
+            targetBootstrap = window.parent.bootstrap || window.bootstrap;
+            toastContainer = targetDocument.getElementById('toastPlacement');
         }
+    } catch (e) {
+        console.warn("Cannot access parent document for toast, using current document.", e);
     }
 
-    const toastId = 'toast-' + Date.now();
+    if (!toastContainer) {
+        toastContainer = document.getElementById('toastPlacement');
+    }
+    
+    if (!toastContainer) {
+        toastContainer = targetDocument.createElement('div');
+        toastContainer.id = 'toastPlacement';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = "1070"; 
+        targetDocument.body.appendChild(toastContainer);
+    }
+
+    const toastId = 'toast-child-' + Date.now();
     let iconClass = 'fas fa-info-circle text-info';
     let title = 'Thông báo';
     if (type === 'success') { iconClass = 'fas fa-check-circle text-success'; title = 'Thành công'; }
-    else if (type === 'error') { iconClass = 'fas fa-times-circle text-danger'; title = 'Lỗi'; } // Đổi icon lỗi
+    else if (type === 'error') { iconClass = 'fas fa-times-circle text-danger'; title = 'Lỗi'; }
     else if (type === 'warning') { iconClass = 'fas fa-exclamation-triangle text-warning'; title = 'Cảnh báo'; }
 
     const toastHtml = `
@@ -352,17 +360,23 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>`;
     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
     
-    const toastElement = (window.self !== window.top && window.parent.document.getElementById(toastId)) || document.getElementById(toastId);
+    const toastElement = targetDocument.getElementById(toastId);
 
-    if (toastElement && typeof (window.parent.bootstrap || bootstrap) !== 'undefined' && (window.parent.bootstrap || bootstrap).Toast) {
-        const bsToast = new (window.parent.bootstrap || bootstrap).Toast(toastElement);
-        bsToast.show();
-        toastElement.addEventListener('hidden.bs.toast', () => {
-            toastElement.remove();
-        });
+    if (toastElement && typeof targetBootstrap !== 'undefined' && targetBootstrap.Toast) {
+        try {
+            const bsToast = new targetBootstrap.Toast(toastElement);
+            bsToast.show();
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        } catch (e) {
+            console.error("Error initializing Bootstrap Toast on targetDocument:", e);
+            toastElement.remove(); 
+            alert(`${title}: ${message}`); 
+        }
     } else {
-        console.error("Bootstrap Toast không khả dụng hoặc element không tìm thấy.");
-        alert(`${title}: ${message}`);
+        console.error("Bootstrap Toast not available on targetDocument or element not found.");
+        alert(`${title}: ${message}`); 
     }
 }
     
