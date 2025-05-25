@@ -4,12 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cảm ơn bạn đã ủng hộ!</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Đường dẫn CSS, giả sử style.css (nếu dùng) hoặc style-quy.css nằm trong thư mục css/ -->
+    <link rel="stylesheet" href="css/style-quy.css"> <!-- Hoặc css/style.css -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <style>
+        /* Giữ nguyên style cũ, có thể lược bớt các phần tử container cơ bản nếu style-quy.css đã có */
+        body {
+            font-family: 'Nunito Sans', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 1140px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
         .thank-you-container {
             text-align: center;
             padding: 50px 20px;
@@ -20,7 +37,8 @@
             box-shadow: 0 6px 18px rgba(0,0,0,0.07);
         }
         .thank-you-container h1 {
-            color: #4CAF50; /* Green for success */
+            color: #4CAF50;
+            font-family: 'Montserrat', sans-serif;
             font-size: 2.5em;
             margin-bottom: 20px;
         }
@@ -46,19 +64,41 @@
         }
         .thank-you-container .actions a {
             margin: 0 10px;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s;
+            color: white; /* Màu chữ cho nút */
         }
+        .btn-secondary { /* Bootstrap class name */
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+        }
+        .btn-primary { /* Bootstrap class name */
+            background-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .mt-3 { margin-top: 1.5rem !important; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="thank-you-container">
             <h1>Cảm ơn bạn đã ủng hộ! <i class="fas fa-heart" style="color: #FF6B6B;"></i></h1>
-            <p>Sự đóng góp của bạn vô cùng ý nghĩa và sẽ trực tiếp giúp đỡ dự án <strong id="projectNameThankYou">Dự án ABC</strong>.</p>
+            <p>Sự đóng góp của bạn vô cùng ý nghĩa và sẽ trực tiếp giúp đỡ dự án <strong id="projectNameThankYou">Dự án bạn vừa ủng hộ</strong>.</p>
             <p>Một email xác nhận đã được (mô phỏng) gửi đến địa chỉ <strong id="donorEmailThankYou">email@example.com</strong>.</p>
-            
+
             <div class="donation-summary">
-                <h3 style="text-align: center; margin-bottom: 15px;">Thông tin đóng góp:</h3>
-                <p><strong>Dự án:</strong> <span id="summaryProjectName">Dự án ABC</span></p>
+                <h3 style="text-align: center; margin-bottom: 15px; font-family: 'Montserrat', sans-serif;">Thông tin đóng góp:</h3>
+                <p><strong>Dự án:</strong> <span id="summaryProjectName">Dự án bạn vừa ủng hộ</span></p>
                 <p><strong>Mã đơn hàng:</strong> <span id="summaryOrderId">N/A</span></p>
                 <p><strong>Số tiền ủng hộ (Tổng cộng):</strong> <span id="summaryAmount">0</span> VNĐ</p>
                 <p><strong>Phương thức thanh toán:</strong> <span id="summaryMethod">Chưa xác định</span></p>
@@ -68,45 +108,58 @@
             <p>Bạn có thể xem báo cáo chi tiết của dự án (khi có) hoặc quay lại trang chủ để khám phá các dự án khác.</p>
             <div class="actions mt-3">
                 <a href="project-detail-completed.html" class="btn btn-secondary">Xem báo cáo dự án (Mẫu)</a>
-                <a href="#" id="backToRegionBtn" class="btn btn-primary">Quay lại Trang Chủ</a>
+                <a href="quy.html" id="backToRegionOrHomeBtn" class="btn btn-primary">Quay lại Các Dự Án</a>
+                <!-- Nút đóng iframe này, nếu người dùng không muốn quay lại trang vùng/dự án -->
+                <button id="closeThankYouIframeBtn" class="btn btn-info" style="margin-top: 15px;">Đóng Chi Tiết</button>
             </div>
         </div>
     </div>
 
     <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const params     = new URLSearchParams(window.location.search);
-  const region     = params.get('region') || '';
-  const rawProject = params.get('project') || '';
-  const projectName = rawProject
-    ? decodeURIComponent(rawProject)
-    : 'Dự án bạn vừa ủng hộ';
+    const params = new URLSearchParams(window.location.search);
+    const region = params.get('region') || '';
+    const rawProject = params.get('project') || '';
+    const projectName = rawProject ? decodeURIComponent(rawProject) : 'Dự án bạn vừa ủng hộ';
 
-  // Cập nhật tên dự án
-  document.getElementById('projectNameThankYou').textContent = projectName;
-  document.getElementById('summaryProjectName').textContent  = projectName;
+    // Hiển thị thông tin quyên góp
+    document.getElementById('projectNameThankYou').textContent = projectName;
+    document.getElementById('summaryProjectName').textContent  = projectName;
+    document.getElementById('donorEmailThankYou').textContent = params.get('email') || 'Không có thông tin';
+    document.getElementById('summaryAmount').textContent = new Intl.NumberFormat('vi-VN').format(parseFloat(params.get('amount')) || 0);
+    const methodRaw = params.get('method') || 'Chưa xác định';
+    document.getElementById('summaryMethod').textContent = methodRaw.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    document.getElementById('summaryOrderId').textContent = params.get('orderId') || 'N/A';
 
-  // Cập nhật các thông tin khác
-  const donorEmail = params.get('email')   || '';
-  const amount     = params.get('amount')  || '0';
-  const methodRaw  = params.get('method')  || '';
-  const orderId    = params.get('orderId')|| '';
+    const backBtn = document.getElementById('backToRegionBtn');
+    if (backBtn) {
+        backBtn.textContent = "Đóng & Quay Lại Trang Chính";
+        backBtn.href = "javascript:void(0);"; // Ngăn điều hướng mặc định
+        backBtn.onclick = function(e) {
+            e.preventDefault();
+            try {
+                // Tìm và ẩn #regionDetail trên trang cha (support.html)
+                const collapseEl = window.parent.document.getElementById('regionDetail');
+                if (collapseEl && window.parent.bootstrap && window.parent.bootstrap.Collapse) {
+                    const bsCollapse = window.parent.bootstrap.Collapse.getOrCreateInstance(collapseEl);
+                    bsCollapse.hide();
+                    
+                    // Tùy chọn: Thông báo cho trang cha để làm mới danh sách dự án của vùng đó
+                    // nếu cần cập nhật ngay lập tức mà không chờ reload.
+                    const fundsUpdateEvent = new CustomEvent('regionFundsUpdated', { detail: { regionCode: region } });
+                    window.parent.document.dispatchEvent(fundsUpdateEvent);
 
-  document.getElementById('donorEmailThankYou').textContent = donorEmail;
-  document.getElementById('summaryAmount').textContent      =
-    new Intl.NumberFormat('vi-VN').format(amount);
-  document.getElementById('summaryMethod').textContent      =
-    methodRaw
-      ? methodRaw.charAt(0).toUpperCase() + methodRaw.slice(1)
-      : 'Chưa xác định';
-  document.getElementById('summaryOrderId').textContent     = orderId;
-
-  // Cập nhật nút Quay lại
-  const backBtn = document.getElementById('backToRegionBtn');
-  if (region && backBtn) {
-    // vùng nằm trong thư mục regions
-    backBtn.href = `regions/${region}.html?region=${region}`;
-  }
+                } else {
+                    // Fallback: nếu không trong cấu trúc iframe mong đợi, quay về trang index
+                    window.parent.location.href = "/index.html"; // Hoặc trang chính của bạn
+                }
+            } catch (error) {
+                console.warn("Không thể tương tác với cửa sổ cha hoặc lỗi:", error);
+                // Fallback nếu có lỗi cross-origin hoặc không có parent
+                window.location.href = "/index.html"; // Quay về trang chính của bạn
+            }
+        };
+    }
 });
 </script>
 </body>

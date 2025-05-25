@@ -313,52 +313,58 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Hàm hiển thị thông báo toast
     window.showToast = function(message, type = 'info') {
-        // Tạo phần tử toast
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        
-        // Thêm biểu tượng dựa vào loại thông báo
-        let icon = 'info-circle';
-        if (type === 'success') icon = 'check-circle';
-        if (type === 'warning') icon = 'exclamation-triangle';
-        if (type === 'error') icon = 'times-circle';
-        
-        toast.innerHTML = `
-            <div class="toast-content">
-                <i class="fas fa-${icon}"></i>
-                <div class="toast-message">${message}</div>
-                <button class="toast-close"><i class="fas fa-times"></i></button>
+    let toastContainer = document.getElementById('toastPlacement');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastPlacement';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = "1060"; // Cao hơn modal (1050-1055 Bootstrap)
+        // Ưu tiên thêm vào parent document nếu đang ở trong iframe (quan trọng)
+        if (window.self !== window.top && window.parent.document.body) {
+            if(!window.parent.document.getElementById('toastPlacement')){
+                 window.parent.document.body.appendChild(toastContainer);
+            } else {
+                toastContainer = window.parent.document.getElementById('toastPlacement');
+            }
+        } else {
+            document.body.appendChild(toastContainer);
+        }
+    }
+
+    const toastId = 'toast-' + Date.now();
+    let iconClass = 'fas fa-info-circle text-info';
+    let title = 'Thông báo';
+    if (type === 'success') { iconClass = 'fas fa-check-circle text-success'; title = 'Thành công'; }
+    else if (type === 'error') { iconClass = 'fas fa-times-circle text-danger'; title = 'Lỗi'; } // Đổi icon lỗi
+    else if (type === 'warning') { iconClass = 'fas fa-exclamation-triangle text-warning'; title = 'Cảnh báo'; }
+
+    const toastHtml = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+            <div class="toast-header">
+                <i class="${iconClass} me-2"></i>
+                <strong class="me-auto">${title}</strong>
+                <small>vài giây trước</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
-            <div class="toast-progress"></div>
-        `;
-        
-        // Thêm toast vào body
-        document.body.appendChild(toast);
-        
-        // Hiển thị toast
-        setTimeout(() => {
-            toast.classList.add('show');
-        }, 100);
-        
-        // Xử lý sự kiện đóng toast
-        const closeBtn = toast.querySelector('.toast-close');
-        closeBtn.addEventListener('click', () => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                document.body.removeChild(toast);
-            }, 300);
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>`;
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = (window.self !== window.top && window.parent.document.getElementById(toastId)) || document.getElementById(toastId);
+
+    if (toastElement && typeof (window.parent.bootstrap || bootstrap) !== 'undefined' && (window.parent.bootstrap || bootstrap).Toast) {
+        const bsToast = new (window.parent.bootstrap || bootstrap).Toast(toastElement);
+        bsToast.show();
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
         });
-        
-        // Tự động đóng toast sau 5 giây
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    document.body.removeChild(toast);
-                }
-            }, 300);
-        }, 5000);
-    };
+    } else {
+        console.error("Bootstrap Toast không khả dụng hoặc element không tìm thấy.");
+        alert(`${title}: ${message}`);
+    }
+}
     
     // Kiểm tra nếu trang đang được tải từ trang khác
     if (document.referrer.includes(window.location.hostname) && pageTransitionOverlay) {
